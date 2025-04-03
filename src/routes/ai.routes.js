@@ -1,8 +1,10 @@
 const express = require('express');
-const aicontroller = require('../controllers/ai.controller.js');
+const aiController = require("../controllers/ai.controller")
+
 const router = express.Router();
 
 
-router.post("/get-review", aicontroller.generateContent);  // ✅ Use the correct function name
+router.post("/get-review", aiController.getReview)
 
-module.exports = router;
+
+module.exports = router;    
