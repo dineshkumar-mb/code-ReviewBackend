@@ -2,7 +2,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_KEY);
 const model = genAI.getGenerativeModel({
-    model: "gemini-2.0-flash",
+    model: "gemini-2.5-flash",
     systemInstruction: `
                 Here’s a solid system instruction for your AI code reviewer:
 
@@ -86,7 +86,41 @@ async function generateContent(prompt) {
     console.log(result.response.text())
 
     return result.response.text();
-
 }
 
-module.exports = generateContent;
+const executionModel = genAI.getGenerativeModel({
+    model: "gemini-2.5-flash",
+    systemInstruction: `
+You are an advanced sandboxed online compiler and code execution engine for all programming languages.
+Your task is to analyze the provided code, determine its programming language (using the provided language context if available), and simulate its execution exactly as a real compiler/interpreter (like Node.js, Python 3, GCC for C++, JDK for Java, etc.) would.
+
+You must return a raw JSON object ONLY, with no markdown formatting and no code blocks (no \`\`\`json). The JSON must have the following exact keys:
+{
+  "logs": [
+    { "type": "log", "text": "log statement 1" }
+  ],
+  "result": "final returned or evaluated value (or null)",
+  "error": "compilation or runtime error message (or null)"
+}
+
+Rules for simulation:
+1. If the code defines a React component or imports packages (like 'import React'), simulate its loading/mounting and output standard messages in 'logs' (e.g. "React component Login rendered successfully.").
+2. If there are output statements (console.log in JS/TS, print in Python, System.out.println in Java, cout in C++, etc.), extract and place their outputs in the 'logs' array, keeping the exact simulated console text.
+3. Be highly accurate. Trace execution line-by-line.
+4. If there is a syntax error, runtime crash, or import error, place the compiler/runtime error message in the 'error' field and stop execution.
+`
+});
+
+async function simulateExecution(code, language) {
+    const prompt = `Language: ${language || "Auto-detect"}\nCode:\n${code}`;
+    const result = await executionModel.generateContent(prompt);
+    let text = result.response.text().trim();
+    
+    // Clean code blocks if present
+    if (text.startsWith("```")) {
+        text = text.replace(/^```json\s*/i, "").replace(/```$/, "").trim();
+    }
+    return text;
+}
+
+module.exports = { generateContent, simulateExecution };
