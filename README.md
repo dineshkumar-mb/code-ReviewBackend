@@ -1,62 +1,68 @@
-Code Reviewer Project
-Welcome to the Code Reviewer project! This application leverages Google Generative AI to streamline and enhance code review processes, making it easier to identify and fix issues in your code.
+# AI Code Reviewer - Backend
 
-Features
-Automated Code Review: Provides intelligent suggestions and highlights potential issues in your code.
+Welcome to the Code Reviewer project! This is the backend service that powers an AI-driven code analysis and simulated execution platform, leveraging Google's Generative AI (Gemini 2.5 Flash).
 
-Google Generative AI: Offers cutting-edge AI capabilities for deep code analysis and meaningful feedback.
+## 🚀 What Was Built
 
-User-Friendly Interface: Intuitive design for both developers and team leads.
+A Node.js/Express server that acts as a proxy and orchestrator for Google's Generative AI models. It exposes endpoints to:
+1. **Analyze Code:** Generate senior-level code reviews based on strict guidelines.
+2. **Simulate Execution:** Mimic a sandboxed online compiler (like Node.js, Python 3, GCC) and return structured runtime logs and errors.
 
-Backend Hosting: Reliable backend hosted on Render here.
+## 💡 Why It's Technically Interesting
 
-Getting Started
-Prerequisites
-Node.js (version X.X or later)
+The technical challenge lies in coercing a Large Language Model (LLM) to act as deterministic infrastructure. Rather than conversational output, the AI is constrained to act as a compiler that outputs strict JSON schemas, allowing the frontend to render dynamic terminal logs without requiring an actual Dockerized code execution environment.
 
-npm or yarn
+## 🛠️ Proof It Works: Architecture & AI Integration
 
-Installation
-Clone this repository:
+### Architecture
+- **Backend:** Node.js + Express, utilizing `@google/generative-ai` SDK. Hosted on [Render](https://code-reviewbackend.onrender.com).
+- **Frontend:** React application, hosted on [Netlify](https://codereviewer2.netlify.app).
 
-bash
-git clone(https://github.com/dineshkumar-mb/code-ReviewBackend)
+### The Prompt Structure
+The AI's behavior is shaped by two distinct system instructions:
+- **Code Reviewer:** Instructed to assume the role of a Senior Developer (7+ years experience) focusing on 6 pillars: Code Quality, Best Practices, Efficiency, Error Detection, Scalability, and Readability. The prompt enforces a strict output format containing categories: `Bad Code`, `Issues`, `Recommended Fix`, and `Improvements`.
+- **Compiler Simulation:** Instructed to behave as a sandboxed execution engine. It analyzes the language, simulates execution line-by-line, and is strictly ordered to return a **raw JSON object** (without markdown).
+
+### Response-Schema Validation & Fallback Approach
+Since LLMs can sometimes ignore formatting instructions, the backend implements robust parsing and fallback strategies in the `executeCode` controller:
+1. **Sanitization:** The `simulateExecution` service strips unwanted Markdown artifacts (like ```json) from the raw AI response using Regex.
+2. **Validation:** The controller attempts to `JSON.parse()` the sanitized response expecting a specific schema: `{ logs: [...], result: String, error: String }`.
+3. **Graceful Fallback:** If the AI's response is malformed and fails JSON parsing, the server does not retry (to save latency/cost). Instead, the `catch` block intercepts the failure and bundles the raw text into a safe fallback schema:
+   ```json
+   {
+       "logs": [{ "type": "log", "text": "Raw LLM string output..." }],
+       "result": null,
+       "error": null
+   }
+   ```
+This guarantees the API always returns a predictable schema, preventing frontend crashes.
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js (version 16+ recommended)
+- A Google Gemini API Key
+
+### Installation
+```bash
+git clone https://github.com/dineshkumar-mb/code-ReviewBackend
 cd code-reviewer
-Install dependencies:
-
-bash
 npm install
-Running the App
-Start the backend server:
+```
 
-bash
+### Environment Variables
+Create a `.env` file in the root directory:
+```
+GOOGLE_GEMINI_KEY=your_gemini_api_key
+```
+
+### Running the Server
+```bash
 npm start
-The backend runs on Render at: https://code-reviewbackend.onrender.com
+```
 
-Launch the frontend (if applicable) and connect it to the backend.
+## 🤝 Contribution
+Contributions are welcome! Please fork the repo, create a feature branch, and submit a PR.
 
-Usage
-Upload your code files or paste your code snippets into the application.
-
-Click "Review Code" to generate AI-powered feedback and suggestions.
-
-Contribution
-Contributions are welcome! Please follow these steps:
-
-Fork the repository.
-
-Create a new branch (git checkout -b feature/YourFeature).
-
-Commit your changes (git commit -m 'Add some feature').
-
-Push to the branch (git push origin feature/YourFeature).
-
-Open a pull request.
-
-License
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-Acknowledgements
-Built using Google Generative AI.
-
-Hosted with 💙 on Render.
+## 📄 License
+This project is licensed under the MIT License.
