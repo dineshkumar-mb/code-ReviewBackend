@@ -46,7 +46,7 @@ This guarantees the API always returns a predictable schema, preventing frontend
 ### Installation
 ```bash
 git clone https://github.com/dineshkumar-mb/code-ReviewBackend
-cd code-reviewer
+cd code-ReviewBackend
 npm install
 ```
 
